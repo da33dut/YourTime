@@ -96,8 +96,9 @@ YourTime/
 ├── definitions.py     # Constants, colours, i18n strings
 ├── build.bat          # PyInstaller one-click build
 ├── config.example.json
-└── data/
-    └── icons8-time-100.ico
+└── tools/
+    icon.py
+    icon.ico
 ```
 
 ---
