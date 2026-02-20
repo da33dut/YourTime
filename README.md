@@ -6,7 +6,7 @@
 > If you misconfigure it (for example with strict autostart rules or always‑blocked times), it may cause repeated logouts that you can only undo from Windows Safe Mode or by manually removing the config/autostart entry.  
 > By using this tool, you accept that you are responsible for your own configuration and any impact on your system.
 
-> **Take back control over screen time — yours or your kids'.**
+## Take back control over screen time — yours or your kids'.
 
 YourTime is a lightweight Windows app that quietly runs in the background and enforces daily time limits per user. Set allowed hours, a countdown timer, or simply block certain days entirely. When time is up, the PC locks itself or logs the user off — no way around it without a password.
 
