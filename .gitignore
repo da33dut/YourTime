@@ -1,0 +1,20 @@
+# Build output
+build/
+dist/
+*.spec
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+venv/
+
+# Runtime & user data (generated at runtime, not for VCS)
+config.json
+error.log
+
+# OS
+.DS_Store
+Thumbs.db
