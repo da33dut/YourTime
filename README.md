@@ -1,6 +1,6 @@
 # ⏱️ YourTime
 
-[If it saves you nerves, time, or family arguments — a small support is always appreciated. ☕](https://www.paypal.com/ncp/payment/NACHHUCV8EQH4)
+[☕ If it saves you nerves, time, or family arguments — a small support is always appreciated.](https://www.paypal.com/ncp/payment/NACHHUCV8EQH4)
 
 > **Take back control over screen time — yours or your kids'.**
 
