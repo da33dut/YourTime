@@ -1,7 +1,6 @@
 # ⏱️ YourTime
 ☕ If it saves you nerves, time, or family arguments — a small support is always appreciated:
-
-[Paypal](https://www.paypal.com/ncp/payment/NACHHUCV8EQH4) | `bitcoin:56YBrHBxgohqf5zs5TUS9KkAcqGDm`
+`bitcoin:56YBrHBxgohqf5zs5TUS9KkAcqGDm` | [Paypal](https://www.paypal.com/ncp/payment/NACHHUCV8EQH4)
 
 > ⚠️ **Friendly disclaimer:** YourTime can automatically lock or log off your Windows session.  
 > If you misconfigure it (for example with strict autostart rules or always‑blocked times), it may cause repeated logouts that you can only undo from Windows Safe Mode or by manually removing the config/autostart entry.  
