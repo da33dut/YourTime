@@ -1,4 +1,4 @@
-# <img src="img/icon.ico" width="3%"> YourTime
+# <img src="img/icon_512.png" width="3%"> YourTime
 ☕ If it saves you nerves, time, or family arguments — a small support is always appreciated:
 `bitcoin:56YBrHBxgohqf5zs5TUS9KkAcqGDm` | [Paypal](https://www.paypal.com/ncp/payment/NACHHUCV8EQH4)
 
