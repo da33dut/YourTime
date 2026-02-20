@@ -6,7 +6,11 @@
 > If you misconfigure it (for example with strict autostart rules or always‑blocked times), it may cause repeated logouts that you can only undo from Windows Safe Mode or by manually removing the config/autostart entry.  
 > By using this tool, you accept that you are responsible for your own configuration and any impact on your system.
 
-## Take back control over screen time — yours or your kids'.
+## Take back control over screen time - yours or your children.
+
+<div align="center">
+<img src="img/screenshot.png" width="75%">
+</div>
 
 YourTime is a lightweight Windows app that quietly runs in the background and enforces daily time limits per user. Set allowed hours, a countdown timer, or simply block certain days entirely. When time is up, the PC locks itself or logs the user off — no way around it without a password.
 
@@ -87,7 +91,7 @@ Settings are stored in `config.json` next to the executable. A default file is c
 | `check_interval_seconds` | How often the watchdog re-evaluates the situation |
 | `extend_seconds` | Step size for the +/– quick-adjust buttons |
 | `action` | `"lock"` or `"logoff"` when time runs out |
-| `allowed_times` | Per-day rules (enabled, time window, timer on/off) |
+| `allowed_times` | Per-day rules (day enabled, time window, use timer on/off) |
 
 ---
 
@@ -95,14 +99,14 @@ Settings are stored in `config.json` next to the executable. A default file is c
 
 ```
 YourTime/
-├── backend.py         # Business logic, watchdog thread, entry point
-├── frontend.py        # Tkinter GUI
-├── definitions.py     # Constants, colours, i18n strings
-├── build.bat          # PyInstaller one-click build
-├── config.example.json
-└── tools/
-    icon.py
-    icon.ico
+├── backend.py          # Business logic, watchdog thread, entry point
+├── frontend.py         # Tkinter GUI
+├── definitions.py      # Constants, colours, i18n strings
+├── build.bat           # PyInstaller one-click build
+├── config.example.json # json example
+└── img/                
+    icon.ico            # app icon
+    screenshot.png      # screenshot for this readme
 ```
 
 ---

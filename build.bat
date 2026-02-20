@@ -32,8 +32,8 @@ if exist YourTime.spec del /q YourTime.spec
 timeout /t 2 /nobreak >nul
 
 set ICON_ARG=
-if exist tools\icon.ico (
-    set ICON_ARG=--icon=tools\icon.ico
+if exist img\icon.ico (
+    set ICON_ARG=--icon=img\icon.ico
     echo INFO: Icon found.
 ) else (
     echo WARN: Icon not found, building without icon.
@@ -53,7 +53,7 @@ if errorlevel 1 (
 )
 
 if exist config.json copy /y config.json dist\config.json >nul
-if exist tools xcopy /e /i /y tools dist\tools >nul
+if exist img xcopy /e /i /y img dist\img >nul
 
 echo INFO: Unblocking EXE...
 powershell -Command "Unblock-File 'dist\YourTime.exe'"

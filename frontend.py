@@ -72,7 +72,7 @@ class App(tk.Tk):
         self.ctrl = AppController(on_trigger=self._cb_trigger, on_warn=self._cb_warn)
 
         self.title("YourTime"); self.resizable(False, False)
-        ico = base() / "tools\\icon.ico" 
+        ico = base() / "img\\icon.ico" 
         if ico.exists():
             try:
                 self.iconbitmap(str(ico))
