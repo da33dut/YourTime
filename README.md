@@ -95,8 +95,6 @@ A default file is created on first run. See `config.example.json` for the full s
 | `action` | `lock` or `logoff` when time runs out |
 | `allowed_times` | Per-day rules: day, enabled, time window, use_timer on/off, limit_minutes |
 
-> `logout_after_minutes` from older versions is no longer used — daily limits are now configured per-day via `limit_minutes` inside `allowed_times`.
-
 ---
 
 ## Project structure
@@ -109,6 +107,7 @@ YourTime/
 ├── build.bat           PyInstaller one-click build
 ├── config.example.json Example config schema
 └── img/
+    ├── icon_512.png    App icon (for this readme)   
     ├── icon.ico        App icon (window + tray)
     └── screenshot.png  Screenshot for this README
 ```
