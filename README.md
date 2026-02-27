@@ -137,3 +137,7 @@ Without the express written permission of the author, no person or organization 
 "Sell" means providing the Software to third parties for a fee, where the primary value derives from the Software's functionality.
 
 </details>
+
+---
+
+Keywords: Screen-Time Control, Parental Control, Mental Health
