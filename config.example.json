@@ -1,0 +1,16 @@
+{
+  "target_user": "",
+  "takt_seconds": 30,
+  "language": "EN",
+  "action": "lock",
+  "password_hash": "",
+  "allowed_times": [
+    {"days": "Monday",    "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
+    {"days": "Tuesday",   "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
+    {"days": "Wednesday", "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
+    {"days": "Thursday",  "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
+    {"days": "Friday",    "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
+    {"days": "Saturday",  "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
+    {"days": "Sunday",    "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60}
+  ]
+}
