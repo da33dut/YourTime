@@ -6,7 +6,7 @@
 
   > ⚠️ **Friendly disclaimer** — YourTime can lock or log off your Windows session. If you misconfigure it (e.g. always-blocked times), it may cause repeated logouts recoverable only from Safe Mode or by manually removing the config/autostart entry. By using this tool you accept responsibility for your own configuration.
 
-A lightweight Windows app that quietly enforces daily screen-time limits per user. Set allowed hours, a countdown timer, or block certain days entirely. When time is up the PC locks itself or logs the user off — no way around it without a password.
+A lightweight Windows app that quietly enforces daily screen-time limits for the current user. Set allowed hours, a countdown timer, or block certain days entirely. When time is up the PC locks itself or logs the user off — no way around it without a password.
 <div align="center">
   <img src="img/screenshot.png" width="80%">
 </div>
@@ -32,7 +32,7 @@ Closing or minimising it? It comes right back. The only way out is to wait — o
 - **System tray** — runs silently in the background
 - **UI languages** — German · English · Russian (cycle button in settings)
 - **Enforcement actions** — Lock workstation or Log off (cycle button in settings)
-- **Quick-adjust buttons** — add or subtract one cycle (Takt) from the remaining timer when in the warning zone
+- **Quick-adjust buttons** — add or subtract one cycle from the remaining timer when in the warning zone
 - **Window stays in foreground** when time is running out
 
 ---
@@ -88,9 +88,9 @@ A default file is created on first run. See `config.example.json` for the full s
 
 | Field | Description |
 |---|---|
-| `target_user` | Windows username to enforce — set automatically on Save |
 | `takt_seconds` | Cycle interval in seconds: watchdog saves remaining time to disk and checks the warn/trigger threshold every N seconds (default 30) |
 | `action` | `lock` or `logoff` when time runs out |
+| `password_hash` | SHA256 hash of the admin password (empty = no protection) |
 | `allowed_times` | Per-day rules: `days`, `enabled`, `start`/`end` time window, `use_timer`, `limit_minutes` |
 
 ---
@@ -105,7 +105,7 @@ YourTime/
 ├── build.bat           PyInstaller one-click build
 ├── config.example.json Example config schema
 └── img/
-    ├── icon_512.png    App icon (for this readme)   
+    ├── icon_512.png    App icon (for this readme)
     ├── icon.ico        App icon (window + tray)
     └── screenshot.png  Screenshot for this README
 ```

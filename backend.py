@@ -27,7 +27,7 @@ try:
     from definitions import (
         LANGS, ACTION_KEYS, ACTION_NEXT, DAYS_EN, DEFAULT_CFG,
         DEFAULT_LANG, DEFAULT_ACTION, DEFAULT_DAY_LIMIT_MIN,
-        LANG, UNLIMITED,
+        DEFAULT_TAKT_SEC, LANG, UNLIMITED,
         AUTOSTART_KEY, AUTOSTART_NAME, AUTOSTART_APPROVED_KEY, AUTOSTART_ENABLED_DATA,
     )
 
@@ -111,6 +111,10 @@ try:
             ]}
             save_cfg(cfg); return dict(cfg)
         cfg = json.loads(p.read_text(encoding="utf-8"))
+        cfg.pop("target_user", None)
+        cfg.pop("check_interval_seconds", None)
+        cfg.pop("extend_seconds", None)
+        cfg.pop("logout_after_minutes", None)
         with _cache_lock:
             _cache["cfg"] = cfg; _cache["mtime"] = mtime
         return dict(cfg)
@@ -124,7 +128,6 @@ try:
             _cache["cfg"] = dict(cfg); _cache["mtime"] = mtime
 
     def hash_pw(pw: str) -> str: return hashlib.sha256(pw.encode()).hexdigest()
-    def current_user() -> str: return os.getenv("USERNAME", "").strip()
 
     def t(lang: str, key: str, **kw) -> str:
         tmpl = LANG[lang].get(key, LANG[DEFAULT_LANG].get(key, key))
@@ -157,7 +160,7 @@ try:
         try: _parse_time(s); return True
         except Exception: return False
 
-    # --- persistence helpers -------------------------------------------------
+    # --- persistence ---------------------------------------------------------
 
     def _rem_key() -> str:
         d = datetime.now().strftime("%Y-%m-%d")
@@ -248,7 +251,7 @@ try:
         return day_limit_sec(rule) if rule else DEFAULT_DAY_LIMIT_MIN * 60
 
     def initial_remaining(cfg: dict) -> int:
-        takt = max(1, int(cfg.get("takt_seconds", 30)))
+        takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
         limit = _today_limit(cfg)
         stored = cfg.get(_rem_key())
         return calc_remaining_sec(
@@ -256,19 +259,16 @@ try:
 
     def reset_remaining(cfg: dict) -> int:
         if not is_allowed(cfg):
-            return max(1, int(cfg.get("takt_seconds", 30)))
+            return max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
         return calc_remaining_sec(cfg, _today_limit(cfg))
 
     # --- watchdog ------------------------------------------------------------
 
     class Watchdog(threading.Thread):
         """
-        Background thread enforcing daily time limits.
-
-        Loop runs every 1 second:
-          - decrement RS by 1
-          - check allowed-state transition (max 1s latency)
-          - every takt_seconds: persist to disk + check warn/trigger threshold
+        Background thread running every second.
+        Decrements remaining seconds, detects allowed-window transitions,
+        and every takt_seconds persists to disk and checks warn/trigger thresholds.
         """
 
         def __init__(self, on_trigger, on_warn):
@@ -278,7 +278,7 @@ try:
             self._lock = threading.Lock()
             self._remaining = UNLIMITED; self._was_allowed = None
             self._stop_evt = threading.Event()
-            self._save_cd = 0          # counts up to takt_seconds
+            self._save_cd = 0
             self._just_acted = False
 
         def get_remaining(self) -> int:
@@ -287,15 +287,15 @@ try:
         def set_remaining(self, rem: int) -> None:
             with self._lock:
                 self._remaining = rem; self.warned = False
-            self._save_cd = 0          # force persist on next tick
+            self._save_cd = 0
             persist_remaining(rem)
 
         def clamp_to_takt(self, cfg: dict) -> None:
-            self.set_remaining(max(1, int(cfg.get("takt_seconds", 30))))
+            self.set_remaining(max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC))))
 
         def adjust(self, delta: int) -> None:
             cfg = load_cfg(); limit = _today_limit(cfg)
-            takt = max(1, int(cfg.get("takt_seconds", 30)))
+            takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
             with self._lock:
                 if self._remaining == UNLIMITED: return
                 self._remaining = max(takt, min(self._remaining + delta, limit))
@@ -308,17 +308,12 @@ try:
         def stop(self) -> None: self.running = False; self._stop_evt.set()
 
         def _tick_rs(self) -> None:
-            """Decrement RS by 1 every second."""
             with self._lock:
                 if self._remaining not in (UNLIMITED, 0):
                     self._remaining -= 1
 
         def _check_transition(self, cfg: dict) -> bool:
-            """
-            Detect allowed-state change every second.
-            Returns True if a transition just occurred (caller should skip
-            the normal warn/trigger check this cycle to avoid false alarms).
-            """
+            """Returns True if an allowed-state transition was detected this second."""
             allowed = is_allowed(cfg)
             if self._was_allowed is None:
                 self._was_allowed = allowed
@@ -326,19 +321,15 @@ try:
                 return True
             if allowed == self._was_allowed:
                 return False
-            # --- transition detected ---
             self._was_allowed = allowed
             if not allowed:
                 self.clamp_to_takt(cfg)
             else:
-                # Entered allowed window: re-evaluate RS from full daily limit
                 self.set_remaining(calc_remaining_sec(cfg, _today_limit(cfg)))
-            return True  # skip warn/trigger this cycle
+            return True
 
         def _evaluate_warn_trigger(self, cfg: dict, takt: int) -> None:
-            """Check warn threshold and trigger action. Called every takt seconds."""
-            user = cfg.get("target_user", "").lower().strip()
-            if not (user and current_user().lower() == user): return
+            """Trigger enforcement action or warning. Called every takt seconds."""
             allowed = is_allowed(cfg); action = cfg.get("action", DEFAULT_ACTION)
             rem = self.get_remaining()
             if rem == 0:
@@ -352,7 +343,7 @@ try:
 
         def run(self) -> None:
             cfg = load_cfg()
-            takt = max(1, int(cfg.get("takt_seconds", 30)))
+            takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
             while self.running:
                 self._stop_evt.wait(timeout=1)
                 kicked = self._stop_evt.is_set(); self._stop_evt.clear()
@@ -361,26 +352,20 @@ try:
                     if self._just_acted:
                         self._just_acted = False
                         cfg = load_cfg()
-                        takt = max(1, int(cfg.get("takt_seconds", 30)))
-                        persist_remaining(0); self.clamp_to_takt(cfg)
-                        self._save_cd = 0
+                        takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
+                        persist_remaining(0); self.clamp_to_takt(cfg); self._save_cd = 0
                         continue
 
-                    # reload config every takt seconds or on kick
                     self._save_cd += 1
                     if self._save_cd >= takt or kicked:
                         self._save_cd = 0
                         cfg = load_cfg()
-                        takt = max(1, int(cfg.get("takt_seconds", 30)))
+                        takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
                         r = self.get_remaining()
                         if r not in (UNLIMITED, 0): persist_remaining(r)
 
                     self._tick_rs()
-
-                    # transition check every second (max 1s latency)
                     transitioned = self._check_transition(cfg)
-
-                    # warn/trigger only on takt boundary, not mid-transition
                     if not transitioned and self._save_cd == 0:
                         self._evaluate_warn_trigger(cfg, takt)
 
@@ -419,14 +404,9 @@ try:
                                "use_timer": day_timers[d],
                                "limit_minutes": day_limits[d]})
             cfg = load_cfg()
-            cfg.update({"target_user": current_user(),
-                        "takt_seconds": takt_sec,
+            cfg.update({"takt_seconds": takt_sec,
                         "language": lang, "action": action,
                         "allowed_times": times})
-            # remove old keys from previous versions
-            cfg.pop("check_interval_seconds", None)
-            cfg.pop("extend_seconds", None)
-            cfg.pop("logout_after_minutes", None)
             cfg.pop(_rem_key(), None)
             save_cfg(cfg); self._cfg = cfg
             self.wd.set_remaining(reset_remaining(cfg)); self.wd.kick()
@@ -439,14 +419,13 @@ try:
         def get_cfg(self) -> dict: return dict(self._cfg)
 
         def is_login_allowed(self) -> bool:
-            # Always live — no cached _cfg so statusbar is always in sync
             return is_allowed(load_cfg())
 
         def extend(self, s: int) -> None: self.wd.extend(s); self.wd.kick()
         def reduce(self, s: int) -> None: self.wd.reduce(s); self.wd.kick()
 
         def check_password(self, pw: str) -> bool:
-            stored = load_cfg().get("password_hash","")
+            stored = load_cfg().get("password_hash", "")
             return not stored or hash_pw(pw) == stored
 
         def set_password(self, pw: str) -> None:
@@ -455,7 +434,7 @@ try:
             save_cfg(cfg)
 
         def has_password(self) -> bool:
-            return bool(load_cfg().get("password_hash",""))
+            return bool(load_cfg().get("password_hash", ""))
 
         @staticmethod
         def translate(lang: str, key: str, **kw) -> str: return t(lang, key, **kw)

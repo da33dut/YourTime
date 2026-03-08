@@ -43,21 +43,21 @@ TAKT_SEC_LO = 5
 TAKT_SEC_HI = 300
 
 # --- fonts -------------------------------------------------------------------
-FONT_NORMAL = ("", 9)
-FONT_BOLD   = ("", 9, "bold")
+FONT_NORMAL  = ("", 9)
+FONT_BOLD    = ("", 9, "bold")
 FONT_ROW_HDR = ("", 8, "bold")
-FONT_REM    = ("", 9, "bold")
+FONT_REM     = ("", 9, "bold")
 
 # --- timings (ms) ------------------------------------------------------------
-TICK_MS = 1000
-STATUS_DURATION_MS = 4000
-TRIGGER_DURATION_MS = 8000
+TICK_MS              = 1000
+STATUS_DURATION_MS   = 4000
+TRIGGER_DURATION_MS  = 8000
 WARN_FRONT_INTERVAL_MS = 1000
 TRAY_ICON_SIZE: tuple[int, int] = (64, 64)
 STARTUP_HIDE_DELAY_MS = 100
 
 # --- colours -----------------------------------------------------------------
-C_BLUE   = "#3498db"; C_GREEN = "#27ae60"; C_RED  = "#e74c3c"
+C_BLUE   = "#3498db"; C_GREEN = "#27ae60"; C_RED   = "#e74c3c"
 C_GRAY_N = "#d9d9d9"; C_WHITE = "#ffffff"; C_BLACK = "#000000"
 C_DIS_BG = "#b5b5b5"; C_DIS_FG = "#707070"
 
@@ -67,9 +67,10 @@ TRAY_ICO_PATH: tuple[str, ...] = ("img", "icon.ico")
 
 # --- default config ----------------------------------------------------------
 DEFAULT_CFG: dict = {
-    "takt_seconds": DEFAULT_TAKT_SEC,
-    "target_user": "", "password_hash": "",
-    "language": DEFAULT_LANG, "action": DEFAULT_ACTION,
+    "takt_seconds":  DEFAULT_TAKT_SEC,
+    "password_hash": "",
+    "language":      DEFAULT_LANG,
+    "action":        DEFAULT_ACTION,
 }
 
 # --- i18n --------------------------------------------------------------------
