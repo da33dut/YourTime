@@ -1,10 +1,9 @@
 <img src="img/icon_512.png" width="20"> YourTime
 
-
-  > ☕ If it saves you nerves, time, or family arguments - a small support is always appreciated: \
-  **Bitcoin:** `56YBrHBxgohqf5zs5TUS9KkAcqGDm`
-
   > ⚠️ **Friendly disclaimer** — YourTime can lock or log off your Windows session. If you misconfigure it (e.g. always-blocked times), it may cause repeated logouts recoverable only from Safe Mode or by manually removing the config/autostart entry. By using this tool you accept responsibility for your own configuration.
+
+  > ☕ If it saves you nerves, time, or family arguments - a cup of  tea is always appreciated: \
+  **Bitcoin:** `56YBrHBxgohqf5zs5TUS9KkAcqGDm`
 
 A lightweight Windows app that quietly enforces daily screen-time limits for the current user. Set allowed hours, a countdown timer, or block certain days entirely. When time is up the PC locks itself or logs the user off — no way around it without a password.
 <div align="center">
