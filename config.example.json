@@ -1,15 +1,40 @@
 {
   "takt_seconds": 30,
+  "password_hash": "",
   "language": "EN",
   "action": "lock",
-  "password_hash": "",
   "allowed_times": [
-    {"days": "Monday",    "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
-    {"days": "Tuesday",   "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
-    {"days": "Wednesday", "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
-    {"days": "Thursday",  "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
-    {"days": "Friday",    "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
-    {"days": "Saturday",  "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60},
-    {"days": "Sunday",    "start": "00:00", "end": "00:00", "enabled": true, "use_timer": true, "limit_minutes": 60}
+    {
+      "days": "Monday",
+      "enabled": true,
+      "start": "15:00",
+      "end": "21:00",
+      "use_timer": true,
+      "limit_minutes": 120
+    },
+    {
+      "days": "Tuesday",
+      "enabled": true,
+      "start": "00:00",
+      "end": "00:00",
+      "use_timer": true,
+      "limit_minutes": 60
+    },
+    {
+      "days": "Saturday",
+      "enabled": true,
+      "start": "10:00",
+      "end": "22:00",
+      "use_timer": false,
+      "limit_minutes": 60
+    },
+    {
+      "days": "Sunday",
+      "enabled": false,
+      "start": "00:00",
+      "end": "00:00",
+      "use_timer": true,
+      "limit_minutes": 60
+    }
   ]
 }

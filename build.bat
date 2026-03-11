@@ -25,9 +25,17 @@ if exist %ICON% (
 
 echo [INFO] Building YourTime...
 if defined ICONARG (
-    pyinstaller --onefile --windowed --icon=%ICONARG% --name=YourTime --add-data "img;img" --add-data "definitions.py;." backend.py
+    pyinstaller --onefile --windowed --icon=%ICONARG% --name=YourTime ^
+        --add-data "img;img" ^
+        --add-data "definitions.py;." ^
+        --add-data "frontend.py;." ^
+        backend.py
 ) else (
-    pyinstaller --onefile --windowed --name=YourTime --add-data "img;img" --add-data "definitions.py;." backend.py
+    pyinstaller --onefile --windowed --name=YourTime ^
+        --add-data "img;img" ^
+        --add-data "definitions.py;." ^
+        --add-data "frontend.py;." ^
+        backend.py
 )
 
 if errorlevel 1 (
@@ -36,10 +44,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [INFO] Copying img folder next to exe so the window icon is found at runtime...
+echo [INFO] Copying img folder next to exe...
 if exist img xcopy /e /i /y img dist\img > nul 2>&1
 
 echo.
 echo [INFO] Build successful. Output: dist\YourTime.exe
-echo [INFO] The dist\img\ folder contains the icon and is required next to the exe.
+echo [INFO] The dist\img\ folder is required next to the exe.
 pause
