@@ -34,8 +34,8 @@ AUTOSTART_ENABLED_DATA = bytes([0x02]) + bytes(11)
 # ---------------------------------------------------------------------------
 # GUI widths (Tkinter character units)
 # ---------------------------------------------------------------------------
-W_LANG      = 4;  W_DAY       = 6;  W_ACTION    = 8
-W_SIDE      = 15; W_LOCK      = 8; W_EXT       = 9
+W_LANG      = 8;  W_DAY       = 6;  W_ACTION    = 8
+W_SIDE      = 15; W_LOCK      = 8;  W_EXT       = 9
 W_PWSET     = 7;  W_PW_LBL    = 12
 W_SPINLBL   = 12; W_ROW       = 7;  W_SPINBOX   = 6
 W_ENTRY_TIME = 6; W_DAY_LIMIT = 6;  W_AUTOSTART = 8
@@ -108,7 +108,7 @@ DEFAULT_CFG: dict = {
 LANG: dict[str, dict[str, str]] = {
     "DE": {
         "frm_settings": "Einstellungen", "frm_password": "Passwort", "frm_adjust": "Anpassen",
-        "lbl_takt": "Takt [s]:",
+        "lbl_takt": "Takt [s]:", "lbl_lang": "Sprache:", 
         "row_from": "Von", "row_to": "Bis", "row_timer": "Limit", "row_limit_min": "[min]",
         "lbl_pw_new": "Neu:", "lbl_pw_rep": "Wiederholen:", "btn_pw_set": "Setzen",
         "btn_reset": "\u23f1 Reset", "btn_quit": "\U0001f6aa Beenden",
@@ -135,7 +135,7 @@ LANG: dict[str, dict[str, str]] = {
     },
     "EN": {
         "frm_settings": "Settings", "frm_password": "Password", "frm_adjust": "Adjust",
-        "lbl_takt": "Cycle [s]:",
+        "lbl_takt": "Cycle [s]:", "lbl_lang": "Language:", 
         "row_from": "From", "row_to": "To", "row_timer": "Limit", "row_limit_min": "[min]",
         "lbl_pw_new": "New:", "lbl_pw_rep": "Repeat:", "btn_pw_set": "Set",
         "btn_reset": "\u23f1 Reset", "btn_quit": "\U0001f6aa Quit",
@@ -162,7 +162,7 @@ LANG: dict[str, dict[str, str]] = {
     },
     "RU": {
         "frm_settings": "Настройки", "frm_password": "Пароль", "frm_adjust": "Подстройка",
-        "lbl_takt": "Такт [с]:",
+        "lbl_takt": "Такт [с]:", "lbl_lang": "Язык:",
         "row_from": "С", "row_to": "По", "row_timer": "Лимит", "row_limit_min": "[мин]",
         "lbl_pw_new": "Новый:", "lbl_pw_rep": "Повторить:", "btn_pw_set": "Задать",
         "btn_reset": "\u23f1 Сброс", "btn_quit": "\U0001f6aa Выход",

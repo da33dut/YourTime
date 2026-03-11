@@ -1,4 +1,4 @@
-"""YourTime â€“ Tkinter settings window with system-tray integration."""
+"""YourTime – Tkinter settings window with system-tray integration."""
 import ctypes, threading
 import tkinter as tk
 from tkinter import ttk
@@ -30,24 +30,24 @@ except ImportError:
     HAS_TRAY = False
 
 # ---------------------------------------------------------------------------
-# LBtn â€“ label-based button widget
+# LBtn – label-based button widget
 # ---------------------------------------------------------------------------
 
 class LBtn:
     """tk.Label styled as a clickable button.
 
     Two disable modes:
-      enable(False)      â€“ bg â†’ gray, fg â†’ gray, flat relief  (lockable controls)
-      set_clickable(False) â€“ bg preserved, fg â†’ gray, flat relief  (status buttons)
+    enable(False)       – bg → gray, fg → gray, flat relief  (lockable controls)
+    set_clickable(False)– bg preserved, fg → gray, flat relief (status buttons)
     """
 
     def __init__(self, parent, text: str, width: int, cmd,
                  active_bg: str = C_GRAY_N, active_fg: str = C_BLACK, bold: bool = False):
         self.active_bg = active_bg
         self.active_fg = active_fg
-        self._cmd      = cmd
-        self._enabled  = True
-        self._pressed  = False
+        self._cmd = cmd
+        self._enabled = True
+        self._pressed = False
         self.w = tk.Label(
             parent, text=text,
             font=FONT_BOLD if bold else FONT_NORMAL,
@@ -102,7 +102,7 @@ class LBtn:
         kw.setdefault("ipady", BTN_PAD); self.w.grid(**kw)
 
 # ---------------------------------------------------------------------------
-# App â€“ main application window
+# App – main application window
 # ---------------------------------------------------------------------------
 
 class App(tk.Tk):
@@ -118,26 +118,26 @@ class App(tk.Tk):
 
     def __init__(self) -> None:
         super().__init__()
-        self._lang    = DEFAULT_LANG
-        self._action  = DEFAULT_ACTION
+        self._lang   = DEFAULT_LANG
+        self._action = DEFAULT_ACTION
         self.unlocked = False
 
         self._ttk_lock: list = []   # ttk widgets toggled on lock/unlock
-        self._lbtns: list    = []   # LBtn instances toggled on lock/unlock
-        self._wlabels: dict  = {}   # key â†’ widget for i18n relabelling
+        self._lbtns:    list = []   # LBtn instances toggled on lock/unlock
+        self._wlabels:  dict = {}   # key → widget for i18n relabelling
 
-        self._pw_mode             = False
-        self._msg_state           = None   # active status message state
-        self._warn_shown          = False
-        self._keep_front_running  = False
+        self._pw_mode            = False
+        self._msg_state          = None   # active status message state
+        self._warn_shown         = False
+        self._keep_front_running = False
 
         # Last-known-good values for fields that accept free-form input
         self._last_good_start: dict = {}
-        self._last_good_end: dict   = {}
+        self._last_good_end:   dict = {}
         self._last_good_limit: dict = {}
-        self._last_good_takt: int   = DEFAULT_TAKT_SEC
+        self._last_good_takt:  int  = DEFAULT_TAKT_SEC
 
-        self._clamping = False  # re-entry guard for spinbox trace callbacks
+        self._clamping = False   # re-entry guard for spinbox trace callbacks
 
         self.ctrl = AppController(on_trigger=self._cb_trigger, on_warn=self._cb_warn)
 
@@ -162,7 +162,7 @@ class App(tk.Tk):
     # --- backend callbacks --------------------------------------------------
 
     def _cb_trigger(self, key: str, action: str) -> None:
-        """Watchdog: time expired â€“ show message and execute system action."""
+        """Watchdog: time expired – show message and execute system action."""
         self.after(0, lambda: self.status_msg(key, "red", duration_ms=TRIGGER_DURATION_MS))
         do_action(action)
 
@@ -204,8 +204,8 @@ class App(tk.Tk):
         self.after(200, lambda: self.attributes("-topmost", False))
 
     def _lbtn(self, parent, text, width, cmd,
-               active_bg=C_GRAY_N, active_fg=C_BLACK,
-               bold=False, lockable=True) -> LBtn:
+              active_bg=C_GRAY_N, active_fg=C_BLACK,
+              bold=False, lockable=True) -> LBtn:
         """Create LBtn; register in lock-list if lockable."""
         b = LBtn(parent, text, width, cmd, active_bg, active_fg, bold)
         if lockable: self._lbtns.append(b)
@@ -237,19 +237,19 @@ class App(tk.Tk):
         self._update_btn_states()
 
     def _update_btn_states(self) -> None:
-        """Synchronise Â±takt buttons with current remaining/warn state.
+        """Synchronise ±takt buttons with current remaining/warn state.
 
-        UNLIMITED â†’ both disabled.
-        Unlocked  â†’ both always active.
-        Locked    â†’ reduce always active; extend only in warning zone.
+        UNLIMITED → both disabled.
+        Unlocked  → both always active.
+        Locked    → reduce always active; extend only in warning zone.
         """
-        takt = self.ctrl.get_cfg().get("takt_seconds", DEFAULT_TAKT_SEC)
-        us   = self._t("unit_s")
-        rem  = self.ctrl.get_remaining()
+        takt  = self.ctrl.get_cfg().get("takt_seconds", DEFAULT_TAKT_SEC)
+        us    = self._t("unit_s")
+        rem   = self.ctrl.get_remaining()
         label_r = f"-{takt}{us}"; label_e = f"+{takt}{us}"
         if rem == UNLIMITED:
-            self.btn_reduce.config(text=label_r);     self.btn_reduce.enable(False)
-            self.btn_extend_btn.config(text=label_e); self.btn_extend_btn.enable(False)
+            self.btn_reduce.config(text=label_r);      self.btn_reduce.enable(False)
+            self.btn_extend_btn.config(text=label_e);  self.btn_extend_btn.enable(False)
             return
         self.btn_reduce.config(text=label_r)
         self.btn_extend_btn.config(text=label_e)
@@ -332,7 +332,7 @@ class App(tk.Tk):
             w.pack_forget()
         self.v_pw_inline.set("")
         self.btn_lock.w.pack(side="left", fill="x", expand=True,
-                              padx=(PAD_ROW, PAD_ROW), ipady=BTN_PAD)
+                             padx=(PAD_ROW, PAD_ROW), ipady=BTN_PAD)
 
     def _check_pw(self, _=None) -> None:
         """Validate inline password entry; unlock on success."""
@@ -342,7 +342,7 @@ class App(tk.Tk):
             self._apply_lock(False)
             self._exit_pw_mode()
             key   = "msg_unlocked" if self.ctrl.has_password() else "msg_no_pw"
-            color = "green" if self.ctrl.has_password() else "orange"
+            color = "green"        if self.ctrl.has_password() else "orange"
             self.status_msg(key, color)
         else:
             self.v_pw_inline.set("")
@@ -454,8 +454,8 @@ class App(tk.Tk):
 
     def hide(self) -> None:
         """Hide to tray; exit password mode and re-lock if needed."""
-        if self._pw_mode: self._exit_pw_mode()
-        if self.unlocked: self.unlocked = False; self._apply_lock(True)
+        if self._pw_mode:  self._exit_pw_mode()
+        if self.unlocked:  self.unlocked = False; self._apply_lock(True)
         self.withdraw()
 
     def exit_app(self) -> None:
@@ -487,7 +487,7 @@ class App(tk.Tk):
         """Fallback programmatic tray icon."""
         img = Image.new("RGB", TRAY_ICON_SIZE, (0, 120, 215))
         d   = ImageDraw.Draw(img)
-        d.ellipse([6, 6, 58, 58], fill="white")
+        d.ellipse([6, 6, 58, 58],   fill="white")
         d.ellipse([14, 14, 50, 50], fill=(0, 120, 215))
         d.rectangle([30, 18, 34, 34], fill="white")
         d.rectangle([30, 30, 44, 34], fill="white")
@@ -557,8 +557,8 @@ class App(tk.Tk):
         """Load config and populate all GUI widgets (traces inactive while locked)."""
         try:
             cfg = self.ctrl.load()
-            self._lang   = cfg.get("language", DEFAULT_LANG)
-            if self._lang not in LANGS:   self._lang   = DEFAULT_LANG
+            self._lang = cfg.get("language", DEFAULT_LANG)
+            if self._lang not in LANGS: self._lang = DEFAULT_LANG
             self._action = cfg.get("action", DEFAULT_ACTION)
             if self._action not in ACTION_KEYS: self._action = DEFAULT_ACTION
             self.btn_lang.config(text=self._lang)
@@ -569,7 +569,7 @@ class App(tk.Tk):
                 for dd in (d if isinstance(d, list) else [d]):
                     if dd not in self.day_state: continue
                     s, e = r.get("start", "00:00"), r.get("end", "00:00")
-                    if   not r.get("enabled", True): self.day_state[dd] = "off"
+                    if not r.get("enabled", True):  self.day_state[dd] = "off"
                     elif s == e:                     self.day_state[dd] = "on"
                     else:                            self.day_state[dd] = "range"
                     self.day_start[dd].set(s); self.day_end[dd].set(e)
@@ -603,22 +603,16 @@ class App(tk.Tk):
         outer.pack(fill="x", padx=PAD_OUTER, pady=PAD_INNER)
         self._reg("frm_settings", outer)
 
-        # Day grid
+        # Day grid -------------------------------------------------------
         days_f = ttk.Frame(outer)
         days_f.grid(row=0, column=0, sticky="nsew", padx=(4, 8), pady=PAD_BTN)
-
-        self.btn_lang = self._lbtn(
-            days_f, self._lang, W_LANG, self._cycle_lang,
-            active_bg=C_BLUE, active_fg=C_WHITE, bold=True, lockable=False,
-        )
-        self.btn_lang.w.grid(row=0, column=0, padx=PAD_BTN, pady=PAD_BTN)
 
         for row, key in enumerate(("row_from", "row_to", "row_timer", "row_limit_min"), start=2):
             lbl = ttk.Label(days_f, text=self._t(key), width=W_ROW, font=FONT_ROW_HDR, anchor="w")
             lbl.grid(row=row, column=0, sticky="w", padx=PAD_BTN, pady=PAD_ROW)
             self._reg(key, lbl)
 
-        self.day_state = {}; self.day_start = {}; self.day_end   = {}
+        self.day_state = {}; self.day_start = {}; self.day_end = {}
         self.day_timer = {}; self.day_limit = {}
         self._day_btns = {}; self._day_entries = {}; self._day_limit_spin = {}
 
@@ -657,36 +651,49 @@ class App(tk.Tk):
 
         ttk.Separator(outer, orient="vertical").grid(row=0, column=1, sticky="ns", pady=PAD_BTN)
 
-        # Right panel
+        # Right panel ----------------------------------------------------
         rf = ttk.Frame(outer)
         rf.grid(row=0, column=2, sticky="new", padx=(8, 4), pady=PAD_BTN)
 
+        # row 0 – Language (NEU, ganz oben) ──────────────────────────────
+        lbl_lang = ttk.Label(rf, text=self._t("lbl_lang"), width=W_SPINLBL, anchor="w")
+        lbl_lang.grid(row=0, column=0, sticky="w", padx=(0, PAD_BTN), pady=(0, PAD_BTN))
+        self._reg("lbl_lang", lbl_lang)
+        self.btn_lang = self._lbtn(
+            rf, self._lang, W_LANG, self._cycle_lang,
+            active_bg=C_BLUE, active_fg=C_WHITE, bold=True, lockable=False,
+        )
+        self.btn_lang.w.grid(row=0, column=1, sticky="w", pady=(0, PAD_BTN))
+
+        # row 1 – Autostart ──────────────────────────────────────────────
         lbl_as = ttk.Label(rf, text=self._t("lbl_autostart"), width=W_SPINLBL, anchor="w")
-        lbl_as.grid(row=0, column=0, sticky="w", padx=(0, PAD_BTN), pady=(0, PAD_BTN))
+        lbl_as.grid(row=1, column=0, sticky="w", padx=(0, PAD_BTN), pady=(0, PAD_BTN))
         self._reg("lbl_autostart", lbl_as)
         self.btn_autostart = self._lbtn(
             rf, self._t("btn_autostart_off"), W_AUTOSTART, self._toggle_autostart,
             active_bg=C_RED, active_fg=C_WHITE, bold=True, lockable=False,
         )
-        self.btn_autostart.w.grid(row=0, column=1, sticky="w", pady=(0, PAD_BTN))
+        self.btn_autostart.w.grid(row=1, column=1, sticky="w", pady=(0, PAD_BTN))
 
+        # row 2 – Action ─────────────────────────────────────────────────
         lbl_act = ttk.Label(rf, text=self._t("lbl_action"), width=W_SPINLBL, anchor="w")
-        lbl_act.grid(row=1, column=0, sticky="w", padx=(0, PAD_BTN), pady=(0, PAD_BTN))
+        lbl_act.grid(row=2, column=0, sticky="w", padx=(0, PAD_BTN), pady=(0, PAD_BTN))
         self._reg("lbl_action", lbl_act)
         self.btn_action = self._lbtn(
             rf, self._t("action_" + self._action), W_ACTION, self._cycle_action,
             active_bg=C_BLUE, active_fg=C_WHITE, bold=True,
         )
-        self.btn_action.w.grid(row=1, column=1, sticky="w", pady=(0, PAD_BTN))
+        self.btn_action.w.grid(row=2, column=1, sticky="w", pady=(0, PAD_BTN))
 
+        # row 3 – Cycle / Takt ───────────────────────────────────────────
         lbl_takt = ttk.Label(rf, text=self._t("lbl_takt"), width=W_SPINLBL, anchor="w")
-        lbl_takt.grid(row=2, column=0, sticky="w", padx=(0, PAD_BTN), pady=PAD_ROW)
+        lbl_takt.grid(row=3, column=0, sticky="w", padx=(0, PAD_BTN), pady=PAD_ROW)
         self._reg("lbl_takt", lbl_takt)
         self.v_takt = tk.IntVar(value=DEFAULT_TAKT_SEC)
         self._ttk_lw(ttk.Spinbox(
             rf, from_=TAKT_SEC_LO, to=TAKT_SEC_HI,
             textvariable=self.v_takt, width=W_SPINBOX,
-        )).grid(row=2, column=1, pady=PAD_ROW, sticky="w")
+        )).grid(row=3, column=1, pady=PAD_ROW, sticky="w")
         self.v_takt.trace_add("write", self._autosave)
 
     def _build_password_row(self) -> None:
@@ -706,7 +713,7 @@ class App(tk.Tk):
         self.v_pw1 = tk.StringVar()
         self.v_pw2 = tk.StringVar()
         for col, (key, var) in enumerate([("lbl_pw_new", self.v_pw1),
-                                        ("lbl_pw_rep", self.v_pw2)]):
+                                          ("lbl_pw_rep", self.v_pw2)]):
             lbl = ttk.Label(inner, text=self._t(key), width=W_PW_LBL, anchor="w")
             lbl.grid(row=0, column=col * 2, sticky="w", padx=(0, PAD_BTN))
             self._reg(key, lbl)
@@ -715,7 +722,7 @@ class App(tk.Tk):
             self._ttk_lw(entry).grid(
                 row=0,
                 column=col * 2 + 1,
-                sticky="w",          
+                sticky="w",
                 padx=(0, 4),
             )
 
@@ -743,9 +750,8 @@ class App(tk.Tk):
         )
         self.btn_extend_btn.pack(side="left", padx=(PAD_BTN, 0))
 
-
     def _build_buttons(self) -> None:
-        """Main action row: [Lock/pw-entry] Â· Reset Â· Quit.
+        """Main action row: [Lock/pw-entry] · Reset · Quit.
         Reset and Quit use W_SIDE width to fill the space where a Save button previously was.
         """
         bf = ttk.Frame(self)
@@ -761,13 +767,13 @@ class App(tk.Tk):
 
         self.btn_lock = self._lbtn(bf, self._t("btn_lock"), W_LOCK, self._on_lock_btn, lockable=False)
         self.btn_lock.w.pack(side="left", fill="x", expand=True,
-                              padx=(0, PAD_ROW), ipady=BTN_PAD)
+                             padx=(0, PAD_ROW), ipady=BTN_PAD)
 
         # Inline password widgets (hidden until _enter_pw_mode)
-        self.v_pw_inline = tk.StringVar()
-        self.pw_entry    = ttk.Entry(bf, textvariable=self.v_pw_inline, show="*", width=1)
-        self.btn_pw_ok   = ttk.Button(bf, text="\u2714", width=3, command=self._check_pw)
-        self.btn_pw_cancel = ttk.Button(bf, text="\u2716", width=3, command=self._exit_pw_mode)
+        self.v_pw_inline  = tk.StringVar()
+        self.pw_entry     = ttk.Entry(bf, textvariable=self.v_pw_inline, show="*", width=1)
+        self.btn_pw_ok    = ttk.Button(bf, text="\u2714", width=3, command=self._check_pw)
+        self.btn_pw_cancel= ttk.Button(bf, text="\u2716", width=3, command=self._exit_pw_mode)
         self.pw_entry.bind("<Return>", self._check_pw)
         self.pw_entry.bind("<Escape>", lambda e: self._exit_pw_mode())
 
