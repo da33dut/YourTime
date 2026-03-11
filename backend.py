@@ -1,14 +1,10 @@
-"""YourTime – config I/O, scheduling, watchdog, AppController, entry point."""
-import sys, ctypes, hashlib, json, subprocess, threading, traceback
+"""YourTime – config I/O, scheduling, watchdog, AppController."""
+import sys, ctypes, hashlib, json, subprocess, threading, traceback, atexit
 from pathlib import Path
 from datetime import datetime, timedelta, time as dtime
 
 if getattr(sys, "frozen", False):
     sys.path.insert(0, sys._MEIPASS)
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 def _base() -> Path:
     return Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent
@@ -34,17 +30,10 @@ try:
 
     _cache: dict = {"cfg": {}, "mtime": 0.0}
     _cache_lock = threading.Lock()
-    _uk: dict = {"date": "", "key": ""}  # memoised daily key
+    _uk: dict = {"date": "", "key": ""}  # used-key memo
 
     # ---------------------------------------------------------------------------
-    # Public path helper
-    # ---------------------------------------------------------------------------
-
-    def base() -> Path:
-        return _base()
-
-    # ---------------------------------------------------------------------------
-    # Autostart (Windows registry)
+    # Autostart
     # ---------------------------------------------------------------------------
 
     def _autostart_exe_cmd() -> str:
@@ -57,7 +46,7 @@ try:
         try:
             import winreg
             k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_KEY, 0, winreg.KEY_READ)
-            try:    winreg.QueryValueEx(k, AUTOSTART_NAME); return True
+            try: winreg.QueryValueEx(k, AUTOSTART_NAME); return True
             except OSError: return False
             finally: winreg.CloseKey(k)
         except Exception: return False
@@ -66,18 +55,20 @@ try:
         try:
             import winreg
             k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_KEY, 0, winreg.KEY_READ)
-            try:    winreg.QueryValueEx(k, AUTOSTART_NAME)
+            try: winreg.QueryValueEx(k, AUTOSTART_NAME)
             except OSError: return False
             finally: winreg.CloseKey(k)
-            sa = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_APPROVED_KEY, 0, winreg.KEY_READ)
             try:
-                data, _ = winreg.QueryValueEx(sa, AUTOSTART_NAME)
-                if isinstance(data, bytes) and len(data) >= 1 and data[0] != 0x02:
-                    return False
+                sa = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_APPROVED_KEY, 0, winreg.KEY_READ)
+                try:
+                    data, _ = winreg.QueryValueEx(sa, AUTOSTART_NAME)
+                    if isinstance(data, bytes) and len(data) >= 1 and data[0] != 0x02:
+                        return False
+                except OSError: pass
+                finally: winreg.CloseKey(sa)
             except OSError: pass
-            finally: winreg.CloseKey(sa)
-        except Exception: pass
-        return True
+            return True
+        except Exception: return False
 
     def autostart_set(enable: bool) -> None:
         import winreg
@@ -93,7 +84,7 @@ try:
             try:
                 sa = winreg.OpenKey(winreg.HKEY_CURRENT_USER, AUTOSTART_APPROVED_KEY, 0,
                                     winreg.KEY_READ | winreg.KEY_SET_VALUE)
-                try:    winreg.SetValueEx(sa, AUTOSTART_NAME, 0, winreg.REG_BINARY, AUTOSTART_ENABLED_DATA)
+                try: winreg.SetValueEx(sa, AUTOSTART_NAME, 0, winreg.REG_BINARY, AUTOSTART_ENABLED_DATA)
                 finally: winreg.CloseKey(sa)
             except OSError: pass
 
@@ -101,9 +92,12 @@ try:
     # Config I/O
     # ---------------------------------------------------------------------------
 
+    def base() -> Path:
+        return _base()
+
     def load_cfg() -> dict:
         p = _base() / "config.json"
-        try:    mtime = p.stat().st_mtime
+        try: mtime = p.stat().st_mtime
         except OSError: mtime = -1.0
         with _cache_lock:
             if 0 < mtime == _cache["mtime"] and _cache["cfg"]:
@@ -117,7 +111,6 @@ try:
             save_cfg(cfg)
             return dict(cfg)
         cfg = json.loads(p.read_text(encoding="utf-8"))
-        # Strip keys removed in older config versions
         for k in ("target_user", "check_interval_seconds", "extend_seconds", "logout_after_minutes"):
             cfg.pop(k, None)
         with _cache_lock:
@@ -127,7 +120,7 @@ try:
     def save_cfg(cfg: dict) -> None:
         p = _base() / "config.json"
         p.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
-        try:    mtime = p.stat().st_mtime
+        try: mtime = p.stat().st_mtime
         except OSError: mtime = -1.0
         with _cache_lock:
             _cache["cfg"] = dict(cfg); _cache["mtime"] = mtime
@@ -156,7 +149,7 @@ try:
         return "\u23f3 " + " ".join(parts + ["%02d" % (sec % 60,) + us])
 
     def day_full(lang: str, day_en: str) -> str:
-        try:    return LANG[lang]["days_full"].split("|")[DAYS_EN.index(day_en)]
+        try: return LANG[lang]["days_full"].split("|")[DAYS_EN.index(day_en)]
         except (ValueError, IndexError): return day_en
 
     def days_short(lang: str) -> list:
@@ -174,7 +167,6 @@ try:
         return h, m
 
     def _day_end_dt(date, end_str: str) -> datetime:
-        # "00:00" as end means midnight of the next day (full-day or overnight window)
         if end_str == "00:00":
             return datetime.combine(date + timedelta(days=1), dtime.min)
         h, m = _parse_time(end_str)
@@ -198,16 +190,12 @@ try:
         """Return (win_start, win_end) for rule on date, or None if full-day."""
         s = rule.get("start", "00:00"); e = rule.get("end", "00:00")
         if s == e: return None
-        try:    sh, sm = _parse_time(s)
+        try: sh, sm = _parse_time(s)
         except ValueError: return None
         return (datetime.combine(date, dtime(sh, sm)), _day_end_dt(date, e))
 
     def calc_remaining(cfg: dict, used_today: int, now: datetime | None = None) -> int:
-        """Continuous remaining seconds from now through consecutive unblocked periods.
-
-        Stops at any gap in the schedule (next allowed period does not start exactly
-        where the previous one ended). Cross-day continuity logic is entirely here.
-        """
+        """Continuous remaining seconds from now through consecutive unblocked periods."""
         if now is None: now = datetime.now()
         MAX = 7 * 24 * 3600; total = 0
         period_end = now
@@ -215,13 +203,15 @@ try:
         for i in range(8):
             date = (now + timedelta(days=i)).date()
             rule = get_rule(cfg, date.strftime("%A"))
-            if not rule or not rule.get("enabled", True): break
-            win = _window(rule, date)
+            if not rule or not rule.get("enabled", True):
+                break
+            win       = _window(rule, date)
             use_timer = rule.get("use_timer", True)
 
             if i > 0:
                 allowed_start = win[0] if win is not None else datetime.combine(date, dtime.min)
-                if allowed_start > period_end: break  # gap → stop
+                if allowed_start > period_end:
+                    break
 
             if i == 0:
                 if use_timer:
@@ -244,9 +234,8 @@ try:
                     ws, we = win
                     total += max(0, int((we - ws).total_seconds())); break
 
-            if total > MAX:
-                return UNLIMITED
-
+        if total > MAX:
+            return UNLIMITED
         return total
 
     def should_enforce(cfg: dict, used_today: int, now: datetime | None = None) -> bool:
@@ -261,7 +250,7 @@ try:
         return False
 
     # ---------------------------------------------------------------------------
-    # Daily usage counter persistence
+    # Persistence – daily usage counter
     # ---------------------------------------------------------------------------
 
     def _used_key() -> str:
@@ -303,85 +292,106 @@ try:
     class Watchdog(threading.Thread):
         """Background thread: tracks used time, enforces limits, fires callbacks."""
 
+        _SLEEP_GAP_SEC = 3  # expected ~1 s per tick; >3 s means wake-from-sleep
+
         def __init__(self, on_trigger, on_warn):
             super().__init__(daemon=True)
-            self.on_trigger = on_trigger  # (key: str, action: str) → None
-            self.on_warn    = on_warn     # (minutes: int) → None
-            self.warned     = False
-            self.running    = True
-            self._lock      = threading.Lock()
-            self._used: int = 0
-            self._cfg:  dict = {}
-            self._today: str = ""
+            self.on_trigger  = on_trigger  # (key: str, action: str) -> None
+            self.on_warn     = on_warn     # (minutes: int) -> None
+            self.warned      = False
+            self.running     = True
+            self._lock       = threading.Lock()
+            self._used:      int  = 0
+            self._cfg:       dict = {}
+            self._today:     str  = ""
             self._stop_evt   = threading.Event()
             self._save_cd    = 0
-            # _countdown: -1 = normal, >=0 = ticking down to enforcement
-            self._countdown: int = -1
-            self._offset:    int = 0   # display correction for uncapped days
+            # _countdown: -1 = normal, >=0 = grace-period ticking to enforcement
+            self._countdown: int  = -1
+            self._offset:    int  = 0   # display correction for uncapped days
             self._max_at_start: int = 0
 
         # --- public API ---------------------------------------------------------
 
         def get_remaining(self) -> int:
+            """Effective remaining seconds (display value)."""
             with self._lock:
-                if self._countdown >= 0: return self._countdown
+                if self._countdown >= 0:
+                    return self._countdown
                 raw = calc_remaining(self._cfg, self._used)
                 if raw == UNLIMITED: return UNLIMITED
                 return max(0, raw + self._offset)
 
         def set_used(self, used: int) -> None:
             with self._lock:
-                self._used = max(0, used)
+                self._used      = max(0, used)
                 self._countdown = -1
                 self._offset    = 0
                 self.warned     = False
             self._stop_evt.set()
 
         def update(self, cfg: dict) -> None:
-            """Push new config; resets offset. Clamps _used for capped days."""
+            """Push new config.
+
+            SAFETY NET: any config change that would cause immediate enforcement
+            always gets a full takt-second grace period. The timer can only reach
+            zero by counting down naturally from takt; never by a sudden jump.
+            """
             takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
             with self._lock:
                 self._cfg    = cfg
                 self._offset = 0
+
                 rule = get_rule(cfg, datetime.now().strftime("%A"))
-                if rule and rule.get("use_timer", True):
+                if rule and rule.get("enabled", True) and rule.get("use_timer", True):
                     limit = day_limit_sec(rule)
                     self._used = min(self._used, max(0, limit - takt))
+
                 if not should_enforce(cfg, self._used):
                     self._countdown = -1
                 else:
-                    self._arm_if_needed(takt)
-                raw = calc_remaining(cfg, 0)
+                    # Always give a full takt grace on any config-change enforcement
+                    self._countdown = takt
+
+                raw     = calc_remaining(cfg, 0)
                 new_max = 7 * 24 * 3600 if raw == UNLIMITED else raw
                 if new_max > self._max_at_start:
                     self._max_at_start = new_max
-                    self.warned = False
+                self.warned = False
             self._stop_evt.set()
 
         def adjust(self, delta: int) -> None:
             """Shift remaining time by delta seconds.
 
-            Ceiling: daily limit (capped day) or max attainable (uncapped day).
-            Floor: remaining is never set below takt via manual adjust.
+            Floor: remaining never set below takt via manual adjust.
+            Fix: uses the displayed countdown value as base when countdown is
+            active, so each + press adds exactly one takt (no silent swallow).
             """
             with self._lock:
                 takt = max(1, int(self._cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
                 rule = get_rule(self._cfg, datetime.now().strftime("%A"))
+
                 if rule and rule.get("use_timer", True):
-                    limit     = day_limit_sec(rule)
-                    cur_rem   = max(0, calc_remaining(self._cfg, self._used))
-                    new_rem   = min(limit, max(takt, cur_rem + delta))
+                    limit = day_limit_sec(rule)
+                    cur_rem = (self._countdown if self._countdown >= 0
+                               else max(0, calc_remaining(self._cfg, self._used)))
+                    new_rem = min(limit, cur_rem + delta)
+                    new_rem = max(takt, new_rem)
                     if new_rem > limit: return
                     self._used   = max(0, limit - new_rem)
                     self._offset = 0
                 else:
                     raw = calc_remaining(self._cfg, self._used)
                     if raw == UNLIMITED: return
-                    max_al  = calc_remaining(self._cfg, 0)
+                    max_al = calc_remaining(self._cfg, 0)
                     if max_al == UNLIMITED: max_al = 7 * 24 * 3600
-                    new_rem = min(max_al, max(takt, max(0, raw + self._offset) + delta))
+                    cur_eff = (self._countdown if self._countdown >= 0
+                               else max(0, raw + self._offset))
+                    new_rem = min(max_al, cur_eff + delta)
+                    new_rem = max(takt, new_rem)
                     if new_rem > max_al: return
                     self._offset = new_rem - raw
+
                 self._countdown = -1
             persist_used(self._used)
 
@@ -394,8 +404,12 @@ try:
                 self._max_at_start = 7 * 24 * 3600 if raw == UNLIMITED else raw
             self.set_used(0)
 
-        def kick(self) -> None:  self._stop_evt.set()
-        def stop(self) -> None:  self.running = False; self._stop_evt.set()
+        def kick(self) -> None:
+            self._stop_evt.set()
+
+        def stop(self) -> None:
+            self.running = False
+            self._stop_evt.set()
 
         # --- internals ----------------------------------------------------------
 
@@ -412,31 +426,39 @@ try:
                 persist_used(0)
                 self.warned = False
 
-        def _arm_if_needed(self, takt: int) -> None:
-            """Start countdown if enforcement is due. Caller must hold self._lock."""
-            if self._countdown >= 0: return
-            if should_enforce(self._cfg, self._used):
-                self._countdown = takt
+        def _evaluate(self, takt: int, triggered_by_zero: bool) -> None:
+            """Fire enforcement or issue low-budget warning.
 
-        def _evaluate(self, takt: int) -> None:
-            """Fire enforcement or issue low-budget warning."""
+            Only fires the system action when triggered_by_zero=True, i.e. the
+            countdown ticked all the way down naturally – never on a sudden jump.
+            """
             with self._lock:
-                cfg = self._cfg; used = self._used; offset = self._offset
+                cfg    = self._cfg
+                used   = self._used
+                offset = self._offset
+
             if should_enforce(cfg, used):
-                with self._lock: self._countdown = takt
+                if not triggered_by_zero:
+                    with self._lock:
+                        if self._countdown < 0:
+                            self._countdown = takt
+                    return
+                with self._lock:
+                    self._countdown = takt  # re-arm for next cycle
                 action = cfg.get("action", DEFAULT_ACTION)
                 rule   = get_rule(cfg, datetime.now().strftime("%A"))
-                now    = datetime.now()
                 in_win = True
                 if rule:
-                    win = _window(rule, now.date())
-                    if win is not None: in_win = win[0] <= now < win[1]
+                    win = _window(rule, datetime.now().date())
+                    if win is not None:
+                        in_win = win[0] <= datetime.now() < win[1]
                 budget = calc_remaining(cfg, used)
                 key = ("msg_timeout"
                        if (in_win and rule and rule.get("enabled", True) and budget == 0)
                        else "msg_blocked")
                 self.on_trigger(key, action)
                 return
+
             raw    = calc_remaining(cfg, used)
             budget = UNLIMITED if raw == UNLIMITED else max(0, raw + offset)
             if budget != UNLIMITED and budget <= takt and not self.warned:
@@ -450,66 +472,89 @@ try:
             takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
             with self._lock:
                 self._cfg = cfg
-                self._arm_if_needed(takt)
+                if should_enforce(cfg, self._used) and self._countdown < 0:
+                    self._countdown = takt
                 raw = calc_remaining(cfg, 0)
                 self._max_at_start = 7 * 24 * 3600 if raw == UNLIMITED else raw
             self._today = datetime.now().strftime("%Y-%m-%d")
+
+            last_tick_time = datetime.now()
+
             while self.running:
                 kicked = self._stop_evt.wait(timeout=1)
                 self._stop_evt.clear()
                 if not self.running: break
                 try:
+                    # --- sleep / hibernate detection ----------------------------
+                    now          = datetime.now()
+                    wall_elapsed = (now - last_tick_time).total_seconds()
+                    last_tick_time = now
+                    # If the wall clock jumped by more than _SLEEP_GAP_SEC for a
+                    # ~1 s tick, the OS woke from sleep. Skip counting this tick.
+                    is_sleep_resume = wall_elapsed > self._SLEEP_GAP_SEC
+
                     self._check_day_change()
+
                     with self._lock:
                         _r0 = calc_remaining(self._cfg, 0)
                         if _r0 != UNLIMITED and _r0 > self._max_at_start:
                             self._max_at_start = _r0
-                        cfg  = self._cfg
-                        takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
-                        if not kicked:
-                            if self._countdown > 0:
-                                self._countdown -= 1; self._save_cd += 1
-                            elif self._countdown == -1:
-                                if not should_enforce(cfg, self._used):
-                                    self._used += 1; self._save_cd += 1
-                        if self._countdown == 0 or (
-                                self._countdown == -1 and should_enforce(cfg, self._used)):
-                            self._save_cd = takt
+                    cfg  = self._cfg
+                    takt = max(1, int(cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
+
+                    triggered_by_zero = False
+
+                    if not kicked:
+                        if self._countdown > 0:
+                            self._countdown -= 1
+                            self._save_cd   += 1
+                        elif self._countdown == -1:
+                            if not should_enforce(cfg, self._used):
+                                self._used    += 1
+                                self._save_cd += 1
+                            else:
+                                # Budget just exhausted → arm grace countdown.
+                                # Never fire immediately without counting down.
+                                self._countdown = takt
+
+                    if self._countdown == 0:
+                        triggered_by_zero = True
+                        self._save_cd     = takt  # force immediate evaluate
+
                     if self._save_cd >= takt or kicked:
                         self._save_cd = 0
                         persist_used(self._used)
-                    if not kicked: self._evaluate(takt)
+                        if not kicked:
+                            self._evaluate(takt, triggered_by_zero)
+
                 except Exception as ex:
                     _log(str(datetime.now()) + ": watchdog: " + str(ex))
 
     # ---------------------------------------------------------------------------
-    # AppController – public API for any frontend
+    # AppController – public API surface for any frontend
     # ---------------------------------------------------------------------------
 
     class AppController:
-        """Facade over Watchdog and config I/O.
-
-        A frontend only needs these methods; no direct access to Watchdog
-        internals or module-level functions is required.
-        """
+        """Facade over Watchdog and config I/O."""
 
         def __init__(self, on_trigger, on_warn):
-            """on_trigger(key, action) and on_warn(minutes) are called from watchdog thread."""
             self.wd   = Watchdog(on_trigger=on_trigger, on_warn=on_warn)
             self._cfg: dict = {}
 
-        def start(self) -> None: self.wd.start()
+        def start(self) -> None:
+            self.wd.start()
+            # Ensure _used is saved even on ungraceful shutdown / logoff / power-off
+            atexit.register(lambda: persist_used(self.wd._used))
 
         def stop(self) -> None:
             persist_used(self.wd._used)
             self.wd.stop()
 
         def load(self) -> dict:
-            """Load config from disk, sync watchdog state. Returns config dict."""
             self._cfg = load_cfg()
             with self.wd._lock:
                 self.wd._cfg = self._cfg
-                raw = calc_remaining(self._cfg, 0)
+                raw     = calc_remaining(self._cfg, 0)
                 new_max = 7 * 24 * 3600 if raw == UNLIMITED else raw
                 if new_max > self.wd._max_at_start:
                     self.wd._max_at_start = new_max
@@ -519,16 +564,15 @@ try:
         def save(self, lang: str, action: str, takt_sec: int,
                  day_states: dict, day_starts: dict, day_ends: dict,
                  day_timers: dict, day_limits: dict) -> None:
-            """Build allowed_times from per-day GUI state and persist."""
             times = []
             for d in DAYS_EN:
                 st = day_states[d]
                 s  = "00:00" if st != "range" else day_starts[d]
                 e  = "00:00" if st != "range" else day_ends[d]
                 times.append({"days": d, "start": s, "end": e,
-                              "enabled": st != "off",
-                              "use_timer": day_timers[d],
-                              "limit_minutes": day_limits[d]})
+                               "enabled": st != "off",
+                               "use_timer": day_timers[d],
+                               "limit_minutes": day_limits[d]})
             cfg = load_cfg()
             cfg.update({"takt_seconds": takt_sec, "language": lang,
                         "action": action, "allowed_times": times})
@@ -542,7 +586,8 @@ try:
                 self.wd._cfg = self._cfg
             self.wd.reset()
 
-        def get_remaining(self) -> int:  return self.wd.get_remaining()
+        def get_remaining(self) -> int:
+            return self.wd.get_remaining()
 
         def is_in_warn_zone(self) -> bool:
             takt = max(1, int(self._cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
@@ -550,10 +595,19 @@ try:
             return rem != UNLIMITED and rem <= takt
 
         def is_login_allowed(self) -> bool:
-            with self.wd._lock:
-                return not should_enforce(self.wd._cfg, self.wd._used)
+            """Login allowed only when remaining > takt and PC is not locked.
 
-        def get_cfg(self) -> dict: return dict(self._cfg)
+            Blocks as soon as the timer enters the warning zone (remaining <= takt)
+            so the status bar reflects the real state before enforcement fires.
+            """
+            takt = max(1, int(self._cfg.get("takt_seconds", DEFAULT_TAKT_SEC)))
+            rem  = self.wd.get_remaining()
+            if rem == UNLIMITED:
+                return True
+            return rem > takt
+
+        def get_cfg(self) -> dict:
+            return dict(self._cfg)
 
         def extend(self, s: int) -> None: self.wd.extend(s); self.wd.kick()
         def reduce(self, s: int) -> None: self.wd.reduce(s); self.wd.kick()
@@ -571,10 +625,9 @@ try:
             return bool(load_cfg().get("password_hash", ""))
 
         def set_language(self, lang: str) -> None:
-            """Persist language change without a full save()."""
             cfg = load_cfg(); cfg["language"] = lang; save_cfg(cfg)
             self._cfg = cfg
-            with self.wd._lock: self.wd._cfg = self._cfg
+            with self.wd._lock: self.wd._lock; self.wd._cfg = self._cfg
 
         @staticmethod
         def translate(lang: str, key: str, **kw) -> str:
@@ -588,8 +641,8 @@ try:
         def format_date(lang: str) -> str:
             now = datetime.now()
             return "\U0001f4c5 " + t(lang, "date_fmt",
-                                      day=day_full(lang, now.strftime("%A")),
-                                      dt=now.strftime("%H:%M:%S"))
+                                       day=day_full(lang, now.strftime("%A")),
+                                       dt=now.strftime("%H:%M:%S"))
 
         @staticmethod
         def days_short(lang: str) -> list:
