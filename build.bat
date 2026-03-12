@@ -1,12 +1,14 @@
 @echo off
 setlocal
 
-echo YourTime Builder
-echo.
+REM ── YourTime – one-click PyInstaller build ─────────────────────────────────
+REM Output: dist\YourTime.exe  (standalone, no Python required on target)
+REM
+REM Requirements:
+REM   pip install pyinstaller pystray pillow
 
-echo [INFO] Installing dependencies...
-pip install pystray pillow pyinstaller > nul 2>&1
-
+set NAME=YourTime
+set ENTRY=backend.py
 echo [INFO] Stopping running instance...
 taskkill /f /im YourTime.exe > nul 2>&1
 
@@ -15,32 +17,22 @@ if exist build rmdir /s /q build
 if exist dist  rmdir /s /q dist
 
 set ICON=img\icon.ico
-if exist %ICON% (
-    echo [INFO] Icon found.
-    set ICONARG=%ICON%
-) else (
-    echo [WARNING] Icon not found, building without icon.
-    set ICONARG=
-)
 
-echo [INFO] Building YourTime...
-if defined ICONARG (
-    pyinstaller --onefile --windowed --icon=%ICONARG% --name=YourTime ^
-        --add-data "img;img" ^
-        --add-data "definitions.py;." ^
-        --add-data "frontend.py;." ^
-        backend.py
-) else (
-    pyinstaller --onefile --windowed --name=YourTime ^
-        --add-data "img;img" ^
-        --add-data "definitions.py;." ^
-        --add-data "frontend.py;." ^
-        backend.py
-)
+pyinstaller ^
+  --onefile ^
+  --windowed ^
+  --name "%NAME%" ^
+  --icon "%ICON%" ^
+  --add-data "img;img" ^
+  --add-data "definitions.py;." ^
+  --add-data "frontend.py;." ^
+  "%ENTRY%"
 
-if errorlevel 1 (
-    echo [ERROR] Build failed!
-    pause
+echo.
+if exist "dist\%NAME%.exe" (
+    echo BUILD OK  --^>  dist\%NAME%.exe
+) else (
+    echo BUILD FAILED - check output above.
     exit /b 1
 )
 
@@ -50,4 +42,4 @@ if exist img xcopy /e /i /y img dist\img > nul 2>&1
 echo.
 echo [INFO] Build successful. Output: dist\YourTime.exe
 echo [INFO] The dist\img\ folder is required next to the exe.
-pause
+endlocal
